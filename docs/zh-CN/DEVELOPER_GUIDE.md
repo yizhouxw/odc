@@ -169,6 +169,16 @@ IDEA Code Style 配置示意图
 
 ![image.png](../en-US/images/idea-setttings-code-style-editorconfig.png)
 
+### 2.3.3 IDEA 其他重要配置
+
+#### 2.3.3.1 build process heap size
+
+IDEA 默认的 build process heap size 为 700M，对于 ODC 项目来说，这个值太小了，会导致编译失败。
+
+这里调整为 2000MB，配置路径为 Settings -> Build, Execution, Deployment -> Compiler -> Build process heap size。
+
+![image.png](../en-US/images/idea-setttings-build-process-heap-size.png)
+
 ## 2.4 配置单元测试运行环境
 
 ODC 的部分单元测试用例依赖真实的数据库服务，数据库帐密是加密存储在配置文件里的。
@@ -290,45 +300,70 @@ export ODC_SERVER_PORT=8989
 
 ## 3.3 IDEA 启动 odc-server
 
-OdcServer 类是 odc-server 程序入口，可直接运行。
-首次运行会失败，因为还没有配置启动参数，获取 metadb 配置会出错。
+OdcServer 类是 odc-server 程序入口，可直接运行。 首次运行会失败，因为还没有配置启动参数，获取 metadb 配置会出错。
 
-> 注意：IDE 启动也依赖首先构建前端资源并拷贝到 odc-server resources 目录。
+### 3.3.1 前端资源
 
-启动 ODC Server 时在启动项中添加如下配置，会自动拉取前端资源。
+IDE 启动也依赖前端资源。可以采取本地构建的方式，也可以采取引用前端静态资源的方式。
+
+**方式一. 本地构建前端资源**
+
+使用以下脚本构建前端资源，会完成构建并拷贝资源文件到到 odc-server 模块 resources 目录。
+
+```shell
+#init node env for first build
+script/init_node_env.sh
+
+#sync submodule odc-client to client
+script/update_submodule.sh
+
+#build odc-client
+script/build_sqlconsole.sh
+```
+
+**方式二. 引用前端静态资源**
+
+启动 ODC Server 时在启动项中添加如下配置，会自动拉取前端资源。前后端分离的研发协同模式下，采用这个方式后端开发可以不关注前端构建过程。
 
 ```shell
 --ODC_INDEX_PAGE_URI=http://static-resource-server/dev-4.2.2/index.html
 ```
 
-### 3.3.1 启动参数
+### 3.3.2 首次构建
 
-注意配置的是 环境变量（environment variables， `--`语法），而不是 VM options（ `-D`语法），样例如下
+在启动 odc-server 之前，还需要完成首次构建，包括 libs 构建和 plugins 构建。
+
+- 如果 libs 目录存在未发布的更新，需要按照 3.1.1 章节的指引完成依赖组件的安装。
+- 接下来需要完成插件的构建，插件的构建是集成在 ODC 的构建过程中的，您可以通过以下 shell 命令完成 ODC 后端构建。
+
+```shell
+script/build_jar.sh
+```
+
+构建完成后，您可以在`distribution/plugins`以及`distribution/starters` 目录中看到这些构建完成的插件。
+
+![image.png](../en-US/images/odc-plugins-starters.png)
+
+### 3.3.3 启动 OdcServer
+
+**运行 OdcServer**
+
+找到 OdcServer 类，右键启动。
+
+![image.png](../en-US/images/idea-run-configuration-start-odc-server.png)
+
+**设置启动参数**
+
+启动参数样例如下
 
 ```shell
 --ODC_DATABASE_HOST=your_metadb_host --ODC_DATABASE_PORT=your_metadb_port --ODC_DATABASE_NAME=your_metadb_database --ODC_DATABASE_USERNAME=your_metadb_user --ODC_DATABASE_PASSWORD=your_metadb_password --server.port=8989
 ```
 
-### 3.3.2 构建支持组件
+注意配置的是 环境变量（environment variables，`--`语法），而不是 VM options（ `-D`语法），样例如下
 
-首先您需要按照 3.1.1 章节的指引完成依赖组件的安装，如果您已经完成了这一步，请忽略。
+启动参数设置示意如下
 
-接下来，您需要完成 ODC 插件的构建，您可以在`server/plugins`以及`server/starters`目录中看到它们，您可以通过以下 shell 命令完成构建：
-
-```shell
-mvn clean package -Dmaven.test.skip=true
-```
-
-插件的构建是集成在 ODC 的构建过程中的。默认情况下，您可以在`distribution/plugins`以及`distribution/starters`目录中看到这些构建完成的插件：
-
-![image.png](../en-US/images/odc-plugins-starters.png)
-
-### 3.3.3 配置过程
-
-运行 OdcServer
-![image.png](../en-US/images/idea-run-configuration-start-odc-server.png)
-
-设置启动参数
 ![image.png](../en-US/images/idea-run-configuration-start-odc-server-2.png)
 
 # 4. 前后端集成和联调
